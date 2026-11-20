@@ -48,8 +48,9 @@ for (const area of AREAS) {
       await expectNoServerErrors(page, async () => {
         await page.goto(area.path);
         const link = page.getByRole("link", { name: area.detailLink }).first();
-        test.skip((await link.count().catch(() => 0)) === 0 && !(await link.isVisible().catch(() => false)), "no items in this area on dev");
-        await expect(link).toBeVisible();
+        // wait until the list has rendered (items or its empty state) before deciding to skip
+        await expect(link.or(page.getByText(/^No .* found\.?$/i)).first()).toBeVisible();
+        test.skip(!(await link.isVisible()), "no items in this area on dev");
         const opened = await Promise.all([page.context().waitForEvent("page", { timeout: 3000 }).catch(() => null), link.click()]);
         const detail = opened[0] ?? page;
         await detail.waitForLoadState("domcontentloaded");

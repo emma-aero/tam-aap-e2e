@@ -1,0 +1,54 @@
+name: e2e (dev)
+
+# Nightly regression run against https://dev.airportacumen.emma.aero.
+# Scheduled runs are READ-ONLY (no data created). A manual run can include the
+# @write tests (they create and clean up tagged test data).
+on:
+  schedule:
+    - cron: "0 2 * * *" # 02:00 UTC every night
+  workflow_dispatch:
+    inputs:
+      include_writes:
+        description: "Also run @write tests (create + clean up test data on dev)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e-dev # never two runs at once: dev shares one rate-limit bucket
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      E2E_BASE_URL: https://dev.airportacumen.emma.aero
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - name: Run e2e tests
+        run: |
+          if [ "${{ inputs.include_writes }}" = "true" ]; then
+            npm test
+          else
+            npm run test:read
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

@@ -18,7 +18,9 @@ export default defineConfig({
   // Dev has ONE rate-limit bucket (100 req/min) shared by every user, because the frontend proxy does
   // not forward client IPs. Run serially so the suite never causes 429s for other people.
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
+  // One retry everywhere: a one-off failure (e.g. dev's shared rate limit under load) is reported
+  // as "flaky" instead of failing the run; a real regression still fails both attempts.
+  retries: 1,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: BASE_URL,

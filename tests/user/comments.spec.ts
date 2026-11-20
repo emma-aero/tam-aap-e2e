@@ -26,37 +26,65 @@ test.afterAll(async () => {
   await api.dispose();
 });
 
-test("@write add, like, edit and delete a comment through the UI", async ({ page }) => {
+test("@write add, like, edit, reply to and delete a comment through the UI", async ({ page }) => {
   test.skip(!termId, "no glossary terms on dev");
   const text = `${RUN_TAG} comment`;
   await page.goto(`/dataverse/business-glossary/${encodeURIComponent(termId!)}`);
 
+  // add
   // The "Add a comment" label is covered by its clickable container, which focuses the textarea.
   await page.getByText("Add a comment").first().locator("xpath=ancestor::div[.//textarea][1]//textarea").focus();
   await page.getByPlaceholder("Type your comment here").fill(text);
   const created = page.waitForResponse((r) => r.url().includes("/api/comments") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Submit" }).first().click();
   expect((await created).status()).toBe(201);
-  // one comment = the block holding its text, header and action buttons
-  const comment = page
-    .locator("div.min-w-0.flex-1")
-    .filter({ hasText: text })
-    .filter({ has: page.getByRole("button", { name: "Reply" }) })
-    .last();
   await expect(page.getByText(text)).toBeVisible();
+  // one comment = the block holding its text, header and action buttons
+  const card = (content: string | RegExp) =>
+    page.locator("div.min-w-0.flex-1").filter({ hasText: content }).filter({ has: page.getByRole("button", { name: "Reply" }) }).last();
+  const comment = card(text);
 
-  const liked = page.waitForResponse((r) => r.url().includes("/api/comments/like/"));
-  await comment.getByRole("button", { name: /Like/ }).first().click();
-  expect((await liked).status()).toBeLessThan(300);
-  const unliked = page.waitForResponse((r) => r.url().includes("/api/comments/like/"));
-  await comment.getByRole("button", { name: /Like/ }).first().click();
-  expect((await unliked).status()).toBeLessThan(300);
+  // like / unlike
+  for (let i = 0; i < 2; i++) {
+    const liked = page.waitForResponse((r) => r.url().includes("/api/comments/like/"));
+    await comment.getByRole("button", { name: /Like/ }).first().click();
+    expect((await liked).status()).toBeLessThan(300);
+  }
 
-  await comment.getByRole("button", { name: "Delete" }).first().click();
+  // edit (only possible while it has no replies)
+  const edited = `${text} edited`;
+  await comment.getByRole("button", { name: "Edit" }).click();
+  // in edit mode the text moves into a textarea: find the one holding our comment
+  const boxes = page.locator("textarea");
+  await expect.poll(async () => {
+    for (let i = 0; i < (await boxes.count()); i++) if ((await boxes.nth(i).inputValue()) === text) return i;
+    return -1;
+  }).toBeGreaterThanOrEqual(0);
+  let editIdx = -1;
+  for (let i = 0; i < (await boxes.count()); i++) if ((await boxes.nth(i).inputValue()) === text) editIdx = i;
+  await boxes.nth(editIdx).fill(edited);
+  const put = page.waitForResponse((r) => r.url().includes("/api/comments/") && r.request().method() === "PUT");
+  await page.getByRole("button", { name: "Apply edit" }).click();
+  expect((await put).status()).toBe(200);
+  await expect(page.getByText(edited)).toBeVisible();
+  await expect(card(edited).getByText("Edited", { exact: true })).toBeVisible();
+
+  // reply
+  const replyText = `${RUN_TAG} reply`;
+  await card(edited).getByRole("button", { name: "Reply" }).click();
+  await page.getByPlaceholder("Type your message here").fill(replyText);
+  const replied = page.waitForResponse((r) => r.url().includes("/api/comments/reply/") && r.request().method() === "POST");
+  await page.getByRole("button", { name: "Submit" }).last().click();
+  expect((await replied).status()).toBe(201);
+  await expect(page.getByText(replyText)).toBeVisible();
+
+  // delete the parent: the reply goes with it
+  await card(edited).getByRole("button", { name: "Delete" }).first().click();
   const deleted = page.waitForResponse((r) => r.url().includes("/api/comments/") && r.request().method() === "DELETE");
   await page.getByRole("button", { name: "Delete" }).last().click();
   expect((await deleted).status()).toBeLessThan(300);
-  await expect(page.getByText(text)).toHaveCount(0);
+  await expect(page.getByText(edited)).toHaveCount(0);
+  await expect(page.getByText(replyText)).toHaveCount(0);
 });
 
 test("@write a user cannot delete someone else's comment (API)", async () => {

@@ -49,13 +49,15 @@ test("@write a normal user cannot approve their own request (API)", async () => 
   }
 });
 
-test("@write create a glossary item through the UI form (emails the domain committee)", async ({ page }) => {
-  test.skip(!ALLOW_EMAIL_TO_COMMITTEES, "set E2E_ALLOW_COMMITTEE_EMAILS=1: the form requires a domain, so committee members get an email");
+test("@write create a glossary item through the UI form", async ({ page }) => {
+  test.skip(!ALLOW_EMAIL_TO_COMMITTEES, "set E2E_ALLOW_COMMITTEE_EMAILS=1: the form requires a domain (Airfield is used; it has no committee on dev today)");
   await page.goto("/dataverse/business-glossary/create");
   await page.getByPlaceholder("Enter item name").fill(`${RUN_TAG} ui item`);
   await page.getByPlaceholder("Enter item definition").fill("Created by the automated e2e suite.");
+  // Airfield has no committee on dev, so only the requester is emailed.
   await page.getByText("Select domains").first().click();
-  await page.getByRole("option").first().click();
+  await page.getByPlaceholder("Search...").fill("Airfield");
+  await page.getByRole("button", { name: "Airfield", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Submit item" }).click();
   const created = page.waitForResponse((r) => r.url().endsWith("/api/requests") && r.request().method() === "POST");

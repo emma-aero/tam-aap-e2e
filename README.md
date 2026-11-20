@@ -36,9 +36,21 @@ The suite refuses to run against any host other than dev or localhost.
 
 | Project | Covers |
 |---|---|
-| `anonymous` | landing page, public glossary, auth guards, "Access Restricted" pages, committees, TAM, terms, login errors, registration validation, verify/reset-password error pages, API auth rules |
-| `user` | every catalog area (list, search, detail, history, filters), session/profile, comments, profile edit, request lifecycle |
-| `admin` | review tab, rejecting a request in the UI; approving (opt-in) |
+| `anonymous` | landing page, public glossary (list, search, detail), auth guards, "Access Restricted" pages, committees, TAM, terms, login errors, registration form + API validation, verify/reset-password error pages, API auth rules |
+| `user` | every catalog area (list, search, detail, History), domain sidebar, pagination, metrics filters, DQR toggles, datasets/data-contract tabs, data-model detail, committee details, session, logout, profile (edit, picture upload), comments (add, like, edit, reply, delete), endorsing, request lifecycle, edit/delete requests from the Edit tab, the create form |
+| `admin` | review tab, rejecting a request in the UI, approving a create request (DataHub write) and cleaning it up |
+
+Deliberately not covered: completing registration / email verification / password-reset
+confirmation (need a mailbox), password-reset requests (5 per hour for all of dev), reporting a
+comment (reports cannot be deleted).
+
+## Nightly run (GitHub Actions)
+
+`.github/workflows/e2e-dev.yml` runs the read-only subset against dev every night at 02:00 UTC
+and uploads the HTML report as an artifact. **Run workflow** with *include_writes* also runs the
+@write tests. Repository secrets needed: `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`,
+`E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD` (the values in your local `.env`). Without them only the
+anonymous tests can pass.
 
 ## Side effects and safety
 
@@ -46,15 +58,14 @@ The suite refuses to run against any host other than dev or localhost.
 - Every record a run creates contains a run tag `e2e-<timestamp>` and is deleted by the same test
   (plus an `afterAll` safety net): requests are hard-deleted, comments soft-deleted, profile
   values restored.
-- Requests are created **without domains**, so no committee member is emailed. The test user
-  receives the usual confirmation emails.
+- Requests are created **without domains**, or with a domain that has no committee on dev
+  (Airfield, Operations), so no committee member is emailed. The test user receives the usual
+  confirmation emails.
 - Opt-in only (in `.env`):
   - `E2E_ALLOW_COMMITTEE_EMAILS=1`: also run the UI create-form test (the form requires a domain,
     so that domain's committee members get an email).
   - `E2E_ALLOW_DATAHUB_WRITES=1`: also run the approve test (creates a glossary term in dev
     DataHub, then removes it with an approved delete request).
-- Never tested on purpose: full registration and password-reset confirmation (need a mailbox),
-  logout (revokes the shared session).
 
 ## Reference
 

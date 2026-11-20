@@ -56,6 +56,10 @@ The suite refuses to run against any host other than dev or localhost.
 - Never tested on purpose: full registration and password-reset confirmation (need a mailbox),
   logout (revokes the shared session).
 
+## Reference
+
+`docs/flow-map.md`: every page, flow, endpoint, side effect and Playwright pitfall of the app, mapped from the code (2026-11-20).
+
 ## Known bugs
 
 Tests for bugs that are live on dev are marked `test.fail(KNOWN_BUG.x)` (see

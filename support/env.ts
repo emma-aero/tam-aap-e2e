@@ -43,6 +43,8 @@ export const ALLOW_DATAHUB_WRITES = process.env.E2E_ALLOW_DATAHUB_WRITES === "1"
  */
 export const KNOWN_BUG = {
   hubPagination: "backend fix/pagination-and-500s: page 2+ of hub-paginated lists is empty",
+  swaggerPublic:
+    "F5/TT-700: ENABLE_API_DOCS is still true on dev, so /api/docs is 200. Set false on the public host, then remove this mark.",
   // Not fixed yet: glossary-detail-client.tsx renders the generic error for a 404, and the
   // backend code is "GLOSSARY TERM_NOT_FOUND" (space) from responseTransformer.ts:66.
   // Not fixed yet: profile-settings form fields stay empty (placeholders only) until "edit"

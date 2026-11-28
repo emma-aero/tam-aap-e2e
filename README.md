@@ -36,7 +36,7 @@ The suite refuses to run against any host other than dev or localhost.
 
 | Project | Covers |
 |---|---|
-| `anonymous` | landing page, public glossary (list, search, detail), auth guards, "Access Restricted" pages, committees, TAM, terms, login errors, registration form + API validation, verify/reset-password error pages, API auth rules |
+| `anonymous` | landing page, public glossary (list, search, detail), auth guards, "Access Restricted" pages, committees, TAM, terms, login errors, registration form + API validation, verify/reset-password error pages, API auth rules, pentest regressions (TT-718 PII redaction, F9 unauth reads, F5 Swagger gate, TT-717 audience, TT-703 no extra browser header) |
 | `user` | every catalog area (list, search, detail, History), domain sidebar, pagination, metrics filters, DQR toggles, datasets/data-contract tabs, data-model detail, committee details, session, logout, profile (edit, picture upload), comments (add, like, edit, reply, delete), endorsing, request lifecycle, edit/delete requests from the Edit tab, the create form |
 | `admin` | review tab, rejecting a request in the UI, approving a create request (DataHub write) and cleaning it up |
 
@@ -83,6 +83,7 @@ Currently marked (2026-11-20):
 |---|---|---|
 | `hubPagination` | page 2+ of glossary/domains/reports/committees is empty, and `total` equals the page length | fixed on backend `fix/pagination-and-500s`, not deployed |
 | `glossaryNotFound` | an unknown glossary id shows "Error Loading Glossary Term" instead of "Not Found"; backend code is `GLOSSARY TERM_NOT_FOUND` (space) | frontend: TT-674 |
+| `swaggerPublic` | `/api/docs` still 200 because `ENABLE_API_DOCS` is not `false` on dev | set the env, then remove the mark |
 | `profileFormEmpty` | profile settings show empty fields (placeholders) instead of the user's values | frontend: TT-671 |
 
 ## Test users
